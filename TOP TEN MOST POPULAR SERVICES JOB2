@@ -1,25 +1,35 @@
 from mrjob.job import MRJob
 
-class PartBJob1(MRJob):
+class PartBJob2(MRJob):
 
-
-    def mapper(self, _, trans):
+    def mapper(self, _, line):
         try:
-            fields = trans.split(',')
-            if len(fields) == 7 :#check if the transactions are clean
-                address=fields[2]#assigning transaction values
-                value=int(fields[3])
-                yield(address,value)# giving the address and its value
+            if(len(line.split(',')) == 5):
+                fields=line.split(',')
+                join_key=fields[0]
+                join_value=1
+                yield(join_key,(join_value,1))
+
+            elif(len(line.split('\t'))==2):
+                fields=line.split('\t')
+                join_key=fields[0]
+                join_key=join_key[1:-1]
+                join_value=int(fields[1])
+                yield(join_key, (join_value,2))# giving the address and its value
+
         except:
             pass
 
-    def combiner(self, address, value):
-        yield(address,sum(value))#Adding up the values for each address
+    def reducer(self,address,values):
+        i=0
+        op_value=0
+        for value in values:
+            if value[1]==1:
+                i=value[0]
+            elif value[1]==2:
+                op_value=value[0]
+        if((i==1) and op_value>0):
+            yield(address,op_value)
 
-
-    def reducer(self, address, value):
-        yield(address,sum(value))#Adding up the values for each address
-
-#this part of the python script tells to actually run the defined MapReduce job. Note that Lab1 is the name of the class
-if __name__ == '__main__':
-        PartBJob1.run()
+if __name__ =='__main__':
+    PartBJob2.run()

@@ -1,0 +1,30 @@
+import pyspark
+import time
+
+sc = pyspark.SparkContext()
+
+#we will use this function later in our filter transformation
+def is_good_trans(trans):
+    #checks if the record has missing columns
+    try:
+        fields = trans.split(',')#split the records into fields
+        if len(fields)!=7:
+            return False
+        float(fields[6])
+        return True
+    except:
+        return False
+
+trans=sc.textFile('/data/ethereum/transactions')
+
+clean_trans=trans.filter(is_good_trans)#filter the transactions
+
+timestamp=clean_trans.map(lambda t:int(t.split(',')[6]))#split the clean transactions
+
+monthyears=timestamp.map(lambda my: (time.strftime("%B-%Y",time.gmtime(my)),1))#create key value pair for month & year
+
+transactions=monthyears.reduceByKey(lambda a,b: a+b)#add up the no. of transactions per month & year
+
+inmem=transactions.persist()
+
+inmem.saveAsTextFile("/user/ajv30/PartA_Output")

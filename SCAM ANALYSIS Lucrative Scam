@@ -1,0 +1,45 @@
+"""using scams.json and trying to find the top ten categories of scams
+by checking how many times a type of scam has occured
+"""
+from mrjob.job import MRJob
+from mrjob.job import MRStep
+import time
+import json
+
+
+class PartCScam(MRJob):
+
+    sector_table = {}
+
+    def mapper1(self,_,line):
+        try:
+            data=json.loads(line)
+            x = list(data['result'].values())
+            for i in x :
+                yield(i["category"],1)
+
+        except:
+            pass
+
+
+    def reducer1(self,category,value):
+        yield(None,(category,sum(value)))
+
+
+    def mapper2(self,key,value):
+        yield(key,value)
+
+    def reducer2(self,key,value):
+        values = sorted(value, reverse=True, key=lambda l:l[1])
+        values = values[0:10]
+        for i in values:
+            yield(None,i)
+
+    def steps(self):
+        return [MRStep(mapper=self.mapper1,
+                       reducer=self.reducer1),
+                MRStep(mapper=self.mapper2,
+                        reducer=self.reducer2)]
+
+if __name__ =='__main__':
+    PartCScam.run()

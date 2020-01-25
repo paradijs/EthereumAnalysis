@@ -1,0 +1,53 @@
+from mrjob.job import MRJob
+import time
+import json
+
+
+class scam_join(MRJob):
+
+    x = {}
+
+
+    def mapper_init(self):
+        with open('scams.json') as f:
+            for line in f:
+                data=json.loads(line)
+                self.x = list(data['result'].values())
+
+
+    def mapper(self,_,line):  ##  Replication Join
+        try:
+            if len(line.split(','))==7: #filtering the transactions
+
+                fields = line.split(',')
+                address = fields[2]
+                for i in self.x:
+                    for j in i["addresses"]:
+                        if j == address:
+                            month = time.strftime("%m",time.gmtime(int(fields[6]) )) # returns day of the month
+                            year = time.strftime("%Y",time.gmtime(int(fields[6]) ))
+                            wei_value = float(fields[3])
+
+                            yield((i["category"],month,year),(address,wei_value, i["status"]))
+
+
+
+        except:
+            pass
+
+
+
+
+    def reducer(self,key,value):
+        total_wei_value = 0.0
+        for i in value:
+            total_wei_value = total_wei_value + i[1]
+            status = i[2]
+
+
+        yield(key,(total_wei_value,status))
+
+
+
+if __name__ =='__main__':
+    scam_join.run()
